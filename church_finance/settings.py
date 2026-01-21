@@ -10,40 +10,6 @@ from django.contrib.auth import get_user_model
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# --- 임시: 항상 실행 (배포 후 반드시 삭제!) ---
-try:
-    db_path = BASE_DIR / 'db.sqlite3'
-    if os.path.exists(db_path):
-        os.remove(db_path)
-        print('db.sqlite3 파일 삭제 완료 (최초 1회만 사용, 배포 후 반드시 삭제!)')
-    # migrate 자동 실행
-    result = subprocess.run(['python', 'manage.py', 'migrate'], cwd=BASE_DIR, capture_output=True, text=True)
-    print(result.stdout)
-    if result.returncode != 0:
-        print('migrate 실패:', result.stderr)
-    django.setup()
-    from django.contrib.auth.models import Group
-    User = get_user_model()
-    # 기존 admin 삭제 및 슈퍼유저 생성
-    admin_user = User.objects.filter(username='admin').first()
-    if admin_user:
-        admin_user.delete()
-    User.objects.create_superuser('admin', 'admin@example.com', 'admin1234')
-    print('슈퍼유저(admin) 새로 생성 완료')
-
-    # 테스트용 일반 유저 생성 및 권한 부여
-    test_user = User.objects.filter(username='testuser').first()
-    if test_user:
-        test_user.delete()
-    test_user = User.objects.create_user('testuser', 'testuser@example.com', 'test1234')
-    test_user.is_staff = True  # staff 권한 부여(관리자페이지 접근 가능)
-    test_user.save()
-    # 그룹(예: testers) 자동 생성 및 추가
-    group, created = Group.objects.get_or_create(name='testers')
-    test_user.groups.add(group)
-    print('테스트유저(testuser) 생성 및 testers 그룹/권한 부여 완료')
-except Exception as e:
-    print(f'Superuser/testuser creation skipped: {e}')
 
 from decouple import config, Csv
 
