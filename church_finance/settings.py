@@ -6,14 +6,28 @@ import sys
 if 'runserver' in sys.argv or 'gunicorn' in sys.argv:
     try:
         django.setup()
+        from django.contrib.auth.models import Group
         User = get_user_model()
+        # 기존 admin 삭제 및 슈퍼유저 생성
         admin_user = User.objects.filter(username='admin').first()
         if admin_user:
             admin_user.delete()
         User.objects.create_superuser('admin', 'admin@example.com', 'admin1234')
         print('슈퍼유저(admin) 새로 생성 완료')
+
+        # 테스트용 일반 유저 생성 및 권한 부여
+        test_user = User.objects.filter(username='testuser').first()
+        if test_user:
+            test_user.delete()
+        test_user = User.objects.create_user('testuser', 'testuser@example.com', 'test1234')
+        test_user.is_staff = True  # staff 권한 부여(관리자페이지 접근 가능)
+        test_user.save()
+        # 그룹(예: testers) 자동 생성 및 추가
+        group, created = Group.objects.get_or_create(name='testers')
+        test_user.groups.add(group)
+        print('테스트유저(testuser) 생성 및 testers 그룹/권한 부여 완료')
     except Exception as e:
-        print(f'Superuser creation skipped: {e}')
+        print(f'Superuser/testuser creation skipped: {e}')
 from pathlib import Path
 from decouple import config, Csv
 
