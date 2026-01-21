@@ -121,3 +121,20 @@ if not DEBUG:
 
 # Railway/Proxy 환경에서 HTTPS 인식
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# --- 슈퍼유저 자동 생성 코드 (임시) ---
+import django
+from django.contrib.auth import get_user_model
+from django.core.management import call_command
+import sys
+
+if 'runserver' in sys.argv or 'gunicorn' in sys.argv:
+    try:
+        django.setup()
+        User = get_user_model()
+        if not User.objects.filter(is_superuser=True).exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'admin1234')
+            print('슈퍼유저(admin) 자동 생성 완료')
+    except Exception as e:
+        print(f'Superuser creation skipped: {e}')
+# --- (임시코드, 로그인 후 반드시 삭제!) ---
