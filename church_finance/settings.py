@@ -109,7 +109,8 @@ CSRF_COOKIE_SECURE = False  # 개발 환경에서는 False
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False  # JavaScript 접근 허용
 
-# 프로덕션 환경 보안 설정 (DEBUG=False일 때만)
+
+# 프로덕션 환경 보안 및 static 서빙 설정 (DEBUG=False일 때만)
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -120,6 +121,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # WhiteNoise static 서빙
+    MIDDLEWARE = ['whitenoise.middleware.WhiteNoiseMiddleware'] + MIDDLEWARE
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Railway/Proxy 환경에서 HTTPS 인식
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
