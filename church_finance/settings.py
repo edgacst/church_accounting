@@ -1,15 +1,3 @@
-# --- 슈퍼유저 자동 생성 (배포 후 반드시 삭제!) ---
-import django
-from django.contrib.auth import get_user_model
-
-try:
-    django.setup()
-    User = get_user_model()
-    if not User.objects.filter(username='admin').exists():
-        User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
-except Exception as e:
-    print("슈퍼유저 생성 오류:", e)
-# --- 여기까지 ---
 from pathlib import Path
 from decouple import config, Csv
 
