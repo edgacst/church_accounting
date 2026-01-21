@@ -132,7 +132,14 @@ if 'runserver' in sys.argv or 'gunicorn' in sys.argv:
     try:
         django.setup()
         User = get_user_model()
-        if not User.objects.filter(is_superuser=True).exists():
+        admin_user = User.objects.filter(username='admin').first()
+        if admin_user:
+            admin_user.set_password('admin1234')
+            admin_user.is_superuser = True
+            admin_user.is_staff = True
+            admin_user.save()
+            print('admin 계정 비밀번호를 admin1234로 재설정했습니다.')
+        else:
             User.objects.create_superuser('admin', 'admin@example.com', 'admin1234')
             print('슈퍼유저(admin) 자동 생성 완료')
     except Exception as e:
