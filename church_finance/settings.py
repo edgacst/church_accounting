@@ -1,3 +1,21 @@
+"""
+임시: admin 계정 1회 자동생성 (배포 후 반드시 삭제!)
+"""
+try:
+    import django
+    django.setup()
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    username = 'admin'
+    email = 'admin@example.com'
+    password = 'admin1234'
+    if not User.objects.filter(username=username).exists():
+        User.objects.create_superuser(username, email, password)
+        print(f'임시코드: 슈퍼유저({username}) 생성 완료!')
+    else:
+        print(f'임시코드: 이미 {username} 계정이 존재합니다.')
+except Exception as e:
+    print(f'임시코드: admin 계정 생성 실패: {e}')
 # --- 슈퍼유저 자동 생성 코드 (임시, 배포 후 반드시 삭제!) ---
 
 import sys
