@@ -7,9 +7,11 @@ if 'runserver' in sys.argv or 'gunicorn' in sys.argv:
     try:
         django.setup()
         User = get_user_model()
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'admin@example.com', 'admin1234')
-            print('슈퍼유저(admin) 생성 완료')
+        admin_user = User.objects.filter(username='admin').first()
+        if admin_user:
+            admin_user.delete()
+        User.objects.create_superuser('admin', 'admin@example.com', 'admin1234')
+        print('슈퍼유저(admin) 새로 생성 완료')
     except Exception as e:
         print(f'Superuser creation skipped: {e}')
 from pathlib import Path
