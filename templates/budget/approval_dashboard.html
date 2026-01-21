@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>결재 대시보드 - 부평우리교회</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .stats-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .request-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 5px solid #f39c12;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        .btn-approve {
+            background: #2ecc71;
+            color: white;
+        }
+        .btn-reject {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-detail {
+            background: #3498db;
+            color: white;
+        }
+        .btn-back {
+            background: #95a5a6;
+            color: white;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #e74c3c;
+        }
+        .modal-footer {
+            margin-top: 20px;
+            text-align: right;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 결재 대시보드</h1>
+            <p>지출 요청 결재 관리</p>
+        </div>
+        
+        <div class="stats-card">
+            <h2>결재 현황</h2>
+            <p>대기 중인 결재: <strong>{{ stats.pending_count }}</strong>건</p>
+            <p>총 금액: <strong>{{ stats.total_amount|floatformat:0 }}</strong>원</p>
+        </div>
+        
+        <!-- 결재 대기 중인 요청들 -->
+        <div class="stats-card">
+            <h2>결재 대기 요청 ({{ stats.pending_count }}건)</h2>
+            {% if pending_expenses %}
+                {% for expense in pending_expenses %}
+                <div class="request-card">
+                    <h3>{{ expense.description|default:"제목 없음" }}</h3>
+                    <p><strong>신청자:</strong> {% if expense.requester.last_name %}{{ expense.requester.last_name }}{{ expense.requester.first_name }}{% else %}{{ expense.requester.username }}{% endif %}</p>
+                    <p><strong>금액:</strong> {{ expense.amount|floatformat:0 }}원</p>
+                    <p><strong>신청일:</strong> {{ expense.transaction_date|date:"Y-m-d" }}</p>
+                    
+                    <div style="margin-top: 10px;">
+                        <!-- 하드코딩된 URL 사용 -->
+                        <a href="/budget/expense/request/{{ expense.id }}/" class="btn btn-detail">
+                            상세보기
+                        </a>
+                        <form method="post" action="/budget/expense/request/{{ expense.id }}/approve/" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-approve" style="border: none; cursor: pointer;">
+                                승인하기
+                            </button>
+                        </form>
+                        <button onclick="openRejectModal({{ expense.id }})" class="btn btn-reject" style="border: none; cursor: pointer;">
+                            거절하기
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h3>결재 대기 중인 요청이 없습니다. 👑</h3>
+                    <p>모든 요청이 처리되었습니다.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/dashboard/" class="btn btn-back">← 대시보드로 돌아가기</a>
+        </div>
+    </div>
+
+    <!-- 반려 사유 입력 모달 -->
+    <div id="rejectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">⚠️ 지출 반려</div>
+            <form id="rejectForm" method="post" action="">
+                {% csrf_token %}
+                <label for="rejection_reason"><strong>반려 사유를 입력하세요:</strong></label>
+                <textarea name="rejection_reason" id="rejection_reason" required placeholder="예: 영수증 미첨부, 예산 초과, 내용 불명확 등"></textarea>
+                <div class="modal-footer">
+                    <button type="button" onclick="closeRejectModal()" class="btn" style="background: #95a5a6; color: white; border: none; cursor: pointer;">취소</button>
+                    <button type="submit" class="btn btn-reject" style="border: none; cursor: pointer;">반려 확인</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openRejectModal(expenseId) {
+            const modal = document.getElementById('rejectModal');
+            const form = document.getElementById('rejectForm');
+            form.action = '/budget/expense/request/' + expenseId + '/reject/';
+            modal.style.display = 'block';
+        }
+
+        function closeRejectModal() {
+            const modal = document.getElementById('rejectModal');
+            modal.style.display = 'none';
+            document.getElementById('rejection_reason').value = '';
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('rejectModal');
+            if (event.target === modal) {
+                closeRejectModal();
+            }
+        }
+    </script>
+</body>
+</html>

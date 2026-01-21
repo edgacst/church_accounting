@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>지출 신청 상세 - 부평우리교회</title>
+    <style>
+        body { font-family: 'Malgun Gothic', Arial; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 5px; }
+        .detail-card { 
+            border: 1px solid #ddd; 
+            padding: 25px; 
+            margin: 20px 0; 
+            border-radius: 8px;
+        }
+        .detail-row { 
+            display: flex; 
+            margin-bottom: 15px; 
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label { 
+            width: 150px; 
+            font-weight: bold; 
+            color: #2c3e50;
+        }
+        .detail-value { flex: 1; }
+        .status-badge { 
+            padding: 6px 15px; 
+            border-radius: 15px; 
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-draft { background: #95a5a6; color: white; }
+        .status-submitted { background: #3498db; color: white; }
+        .status-approved { background: #2ecc71; color: white; }
+        .status-rejected { background: #e74c3c; color: white; }
+        .status-paid { background: #9b59b6; color: white; }
+        .btn { 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        .receipt-image { max-width: 100%; max-height: 400px; border: 1px solid #ddd; margin-top: 10px; }
+        .receipt-form { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .receipt-viewer {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #3498db;
+        }
+        .receipt-actions {
+            margin-top: 10px;
+        }
+        .receipt-actions a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .receipt-actions a:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 지출 신청 상세보기</h1>
+            <p>신청번호: #{{ expense.id }}</p>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <a href="/budget/expense/requests/" class="btn btn-secondary">← 목록으로</a>
+            <a href="/budget/expense/request/" class="btn btn-primary" style="margin-left: 10px;">➕ 새 신청</a>
+            <a href="{% url 'budget:download_expense_pdf' expense.pk %}" class="btn" style="background: #e74c3c; color: white; margin-left: 10px;">📄 지출결의서 PDF</a>
+        </div>
+        
+        <div class="detail-card">
+            <!-- 상태 배지 -->
+            <div style="text-align: right; margin-bottom: 20px;">
+                <span class="status-badge status-{{ expense.status }}">
+                    {% if expense.status == 'draft' %}작성중
+                    {% elif expense.status == 'submitted' %}제출됨
+                    {% elif expense.status == 'approved' %}승인됨
+                    {% elif expense.status == 'rejected' %}반려됨
+                    {% elif expense.status == 'paid' %}지급완료
+                    {% else %}{{ expense.status }}{% endif %}
+                </span>
+            </div>
+            
+            <!-- 기본 정보 -->
+            <div class="detail-row">
+                <div class="detail-label">지출 내용</div>
+                <div class="detail-value"><strong>{{ expense.description }}</strong></div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">금액</div>
+                <div class="detail-value" style="color: #e74c3c; font-size: 1.2em; font-weight: bold;">
+                    {{ expense.amount|floatformat:0 }}원
+                </div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">지출 일자</div>
+                <div class="detail-value">{{ expense.transaction_date }}</div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">사용 예산</div>
+                <div class="detail-value">
+                    {{ expense.budget.category.name }}
+                    <small style="color: #666;">({{ expense.budget.department.name|default:"전체" }})</small>
+                </div>
+            </div>
+            
+            {% if expense.vendor %}
+            <div class="detail-row">
+                <div class="detail-label">거래처</div>
+                <div class="detail-value">{{ expense.vendor }}</div>
+            </div>
+            {% endif %}
+            
+            {% if expense.notes %}
+            <div class="detail-row">
+                <div class="detail-label">비고</div>
+                <div class="detail-value">{{ expense.notes|linebreaks }}</div>
+            </div>
+            {% endif %}
+            
+            <!-- 관리 정보 -->
+            <div class="detail-row">
+                <div class="detail-label">신청자</div>
+                <div class="detail-value">{% if expense.requester.last_name %}{{ expense.requester.last_name }}{{ expense.requester.first_name }}{% else %}{{ expense.requester.username }}{% endif %}</div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">신청일시</div>
+                <div class="detail-value">{{ expense.created_at|date:"Y-m-d H:i" }}</div>
+            </div>
+            
+            {% if expense.approved_by %}
+            <div class="detail-row">
+                <div class="detail-label">결재자</div>
+                <div class="detail-value">{% if expense.approved_by.last_name %}{{ expense.approved_by.last_name }}{{ expense.approved_by.first_name }}{% else %}{{ expense.approved_by.username }}{% endif %}</div>
+            </div>
+            {% endif %}
+            
+            {% if expense.approval_date %}
+            <div class="detail-row">
+                <div class="detail-label">결재일시</div>
+                <div class="detail-value">{{ expense.approval_date|date:"Y-m-d H:i" }}</div>
+            </div>
+            {% endif %}
+            
+            {% if expense.status == 'rejected' and expense.rejection_reason %}
+            <div class="detail-row" style="background: #fee; padding: 15px; border-radius: 5px;">
+                <div class="detail-label" style="color: #e74c3c;">반려 사유</div>
+                <div class="detail-value" style="color: #c0392b; font-weight: bold;">
+                    {{ expense.rejection_reason|linebreaks }}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- 영수증 섹션 -->
+            <div class="detail-row" style="border-bottom: none;">
+                <div class="detail-label">영수증</div>
+                <div class="detail-value">
+                    {% if expense.receipt %}
+                        <div class="receipt-viewer">
+                            <div style="margin-bottom: 10px;">
+                                <strong>✅ 영수증이 등록되었습니다.</strong>
+                            </div>
+                            
+                            <div class="receipt-actions">
+                                <a href="{{ expense.receipt.url }}" target="_blank" download>
+                                    📥 다운로드
+                                </a>
+                                <a href="{{ expense.receipt.url }}" target="_blank">
+                                    🔍 새 창에서 보기
+                                </a>
+                            </div>
+                            
+                            {% if expense.receipt.url %}
+                                {% if '.jpg' in expense.receipt.url|lower or '.jpeg' in expense.receipt.url|lower or '.png' in expense.receipt.url|lower or '.gif' in expense.receipt.url|lower %}
+                                    <div style="margin-top: 15px; text-align: center;">
+                                        <img src="{{ expense.receipt.url }}" alt="영수증 이미지" class="receipt-image" onclick="window.open('{{ expense.receipt.url }}', '_blank')" style="cursor: pointer;">
+                                        <p style="color: #666; font-size: 0.9em; margin-top: 10px;">클릭하면 크게 볼 수 있습니다</p>
+                                    </div>
+                                {% elif '.pdf' in expense.receipt.url|lower %}
+                                    <div style="margin-top: 15px; padding: 20px; background: white; text-align: center; border: 1px solid #ddd;">
+                                        <p style="font-size: 3em; margin: 0;">📄</p>
+                                        <p style="color: #666;">PDF 파일</p>
+                                    </div>
+                                {% else %}
+                                    <div style="margin-top: 15px; padding: 20px; background: white; text-align: center; border: 1px solid #ddd;">
+                                        <p style="font-size: 3em; margin: 0;">📎</p>
+                                        <p style="color: #666;">첨부파일</p>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% elif expense.status == 'approved' %}
+                        <div style="color: #e74c3c; padding: 10px; background: #fee; border-radius: 5px;">
+                            ⚠️ 영수증이 필요합니다. 아래에서 업로드해주세요.
+                        </div>
+                    {% else %}
+                        <div style="color: #666;">
+                            결재 승인 후 영수증을 업로드해주세요.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 관리자 승인/거절 버튼 (대기중이고 관리자인 경우) -->
+        {% if expense.status == 'pending' and user.is_staff %}
+        <div style="margin-top: 30px; padding: 25px; background: #f8f9fa; border-radius: 8px; border: 2px solid #f39c12;">
+            <h3 style="margin-top: 0; color: #e67e22;">🔐 관리자 결재</h3>
+            <p style="color: #666; margin-bottom: 20px;">이 지출 신청을 승인하거나 반려할 수 있습니다.</p>
+            
+            <div style="display: flex; gap: 15px;">
+                <!-- 승인 버튼 -->
+                <form method="post" action="{% url 'budget:approve_expense' expense.id %}" style="flex: 1;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="width: 100%; background: #2ecc71; color: white; padding: 15px; font-size: 1.1em; cursor: pointer; border: none;"
+                            onclick="return confirm('이 지출 신청을 승인하시겠습니까?')">
+                        ✅ 승인하기
+                    </button>
+                </form>
+                
+                <!-- 반려 버튼 -->
+                <button type="button" class="btn" style="flex: 1; background: #e74c3c; color: white; padding: 15px; font-size: 1.1em; cursor: pointer; border: none;"
+                        onclick="document.getElementById('rejectModal').style.display='block'">
+                    ❌ 반려하기
+                </button>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 5px;">
+                <p style="margin: 0; font-size: 0.9em; color: #666;">
+                    <strong>예산 잔액:</strong> {{ expense.budget.balance|floatformat:0 }}원<br>
+                    <strong>신청 금액:</strong> {{ expense.amount|floatformat:0 }}원<br>
+                    {% if expense.budget.balance >= expense.amount %}
+                        <span style="color: #2ecc71;">✓ 예산이 충분합니다.</span>
+                    {% else %}
+                        <span style="color: #e74c3c;">⚠ 예산이 부족합니다!</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <!-- 반려 모달 -->
+        <div id="rejectModal" class="modal">
+            <div class="modal-content">
+                <h3 style="color: #e74c3c; margin-top: 0;">❌ 지출 신청 반려</h3>
+                <form method="post" action="{% url 'budget:reject_expense' expense.id %}">
+                    {% csrf_token %}
+                    <div style="margin: 20px 0;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: bold;">반려 사유 (필수)</label>
+                        <textarea name="rejection_reason" rows="5" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" required placeholder="반려 사유를 상세히 입력해주세요..."></textarea>
+                    </div>
+                    <div style="text-align: right;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('rejectModal').style.display='none'">취소</button>
+                        <button type="submit" class="btn" style="background: #e74c3c; color: white; cursor: pointer; border: none; margin-left: 10px;">반려하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <style>
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+            }
+            .modal-content {
+                background-color: white;
+                margin: 10% auto;
+                padding: 30px;
+                border-radius: 10px;
+                width: 90%;
+                max-width: 500px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            }
+        </style>
+        {% endif %}
+        
+        <!-- 영수증 업로드 폼 (승인된 경우만) -->
+        {% if expense.status == 'approved' and not expense.receipt %}
+        <div class="receipt-form">
+            <h3>📎 영수증 업로드</h3>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">영수증 이미지 선택</label>
+                    <input type="file" name="receipt" accept="image/*,.pdf" required>
+                </div>
+                <button type="submit" class="btn btn-primary">📤 영수증 업로드</button>
+            </form>
+            <small style="color: #666; display: block; margin-top: 10px;">
+                지원 형식: JPG, PNG, PDF (최대 5MB)
+            </small>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 30px;">
+            <a href="/budget/expense/requests/" class="btn btn-secondary">← 목록으로</a>
+            <a href="/" class="btn btn-secondary" style="margin-left: 10px;">🏠 대시보드</a>
+        </div>
+    </div>
+</body>
+</html>

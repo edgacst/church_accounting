@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}관리자 도구 - 교회 회계 시스템{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">🔧 관리자 도구</h2>
+    <div class="mb-3">
+        <a href="{% url 'budget:backup_sqlite_db' %}" class="btn btn-secondary mb-2">
+            <i class="bi bi-hdd"></i> 전체 DB 백업
+        </a>
+        <a href="{% url 'budget:backup_db_and_media' %}" class="btn btn-dark mb-2">
+            <i class="bi bi-archive"></i> DB+미디어 전체 백업
+        </a>
+        <form method="post" action="{% url 'budget:reset_certificate_issuelog' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger mb-2" onclick="return confirm('정말로 증명서 발급현황을 초기화하시겠습니까?')">
+                <i class="bi bi-x-circle"></i> 증명서 발급현황 초기화
+            </button>
+        </form>
+        <a href="{% url 'budget:backup_certificate_issuelog' %}" class="btn btn-warning mb-2">
+            <i class="bi bi-download"></i> 증명서 발급현황 백업
+        </a>
+        <a href="{% url 'budget:admin_data_reset' %}" class="btn btn-danger mb-2" onclick="return confirm('정말로 모든 교인/헌금/지출/증명서 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?')">
+            <i class="bi bi-exclamation-triangle"></i> 전체 데이터 초기화
+        </a>
+    </div>
+    <hr>
+    <p>이 페이지는 관리자만 접근할 수 있습니다.<br>주요 데이터 관리 및 백업/초기화 기능을 한 곳에서 실행할 수 있습니다.</p>
+</div>
+{% endblock %}

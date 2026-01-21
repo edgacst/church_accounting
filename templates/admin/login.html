@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+{% if not user.is_staff %}
+<style>
+    #custom-modal-bg {
+        position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 9999; display: flex; align-items: center; justify-content: center;
+    }
+    #custom-modal {
+        background: #fff; border-radius: 8px; box-shadow: 0 2px 16px #0002; padding: 32px 24px; text-align: center; min-width: 280px;
+    }
+    #custom-modal button { margin-top: 24px; padding: 8px 32px; border: none; background: #007bff; color: #fff; border-radius: 4px; font-size: 1.1em; }
+</style>
+<div id="custom-modal-bg">
+    <div id="custom-modal">
+        <div style="font-size:1.2em; font-weight:bold; margin-bottom:12px;">접근권한이 없는 페이지입니다.</div>
+        <div style="margin-bottom:8px;">관리자에게 문의하세요</div>
+        <div style="color:#d9534f; font-weight:bold;">010-8921-9973</div>
+        <button onclick="window.history.back()">확인</button>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+<file-rename> login_backup.html

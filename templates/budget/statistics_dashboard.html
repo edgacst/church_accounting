@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}통계 대시보드 - 교회 재정 관리 시스템{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-bar-chart-line"></i> 통계 대시보드</h2>
+        
+        <!-- 연도/월 선택 -->
+        <div class="btn-group">
+            <select id="yearSelect" class="form-select" onchange="changeYear()">
+                {% for y in available_years %}
+                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}년</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <h6>총 헌금</h6>
+                <div class="stat-value">{{ total_offering|intcomma }}원</div>
+                <small>{{ offering_count }}건</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <h6>총 지출</h6>
+                <div class="stat-value">{{ total_expense|intcomma }}원</div>
+                <small>{{ expense_count }}건 (승인)</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <h6>수지차</h6>
+                <div class="stat-value">{{ balance|intcomma }}원</div>
+                <small>{% if balance >= 0 %}흑자{% else %}적자{% endif %}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-dark">
+                <h6>대기 중 신청</h6>
+                <div class="stat-value">{{ pending_count }}건</div>
+                <small>{{ pending_amount|intcomma }}원</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 월별 추이 그래프 -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-graph-up"></i> {{ year }}년 월별 수입/지출 추이
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 헌금 유형별 통계 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-pie-chart"></i> 헌금 유형별 통계
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="offeringTypeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 부서별 지출 통계 -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-pie-chart"></i> 부서별 지출 통계
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="departmentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 월별 상세 테이블 -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <i class="bi bi-table"></i> 월별 상세 내역
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>월</th>
+                            <th class="text-end">헌금</th>
+                            <th class="text-end">지출</th>
+                            <th class="text-end">수지차</th>
+                            <th class="text-center">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in monthly_data %}
+                        <tr>
+                            <td>{{ data.month }}월</td>
+                            <td class="text-end text-primary">{{ data.offering|intcomma }}원</td>
+                            <td class="text-end text-danger">{{ data.expense|intcomma }}원</td>
+                            <td class="text-end {% if data.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ data.balance|intcomma }}원
+                            </td>
+                            <td class="text-center">
+                                {% if data.balance >= 0 %}
+                                <span class="badge bg-success">흑자</span>
+                                {% else %}
+                                <span class="badge bg-danger">적자</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th>합계</th>
+                            <th class="text-end">{{ total_offering|intcomma }}원</th>
+                            <th class="text-end">{{ total_expense|intcomma }}원</th>
+                            <th class="text-end">{{ balance|intcomma }}원</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="text-center mb-4">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-house-door"></i> 대시보드
+        </a>
+        <a href="{% url 'budget:budget_performance_report' %}" class="btn btn-primary">
+            <i class="bi bi-graph-up"></i> 예산 실적
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="bi bi-printer"></i> 인쇄
+        </button>
+        {% if user.is_staff %}
+        <form method="post" action="{% url 'budget:reset_certificate_issuelog' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('정말로 증명서 발급현황을 초기화하시겠습니까?')">
+                <i class="bi bi-x-circle"></i> 증명서 발급현황 초기화
+            </button>
+        </form>
+        <a href="{% url 'budget:backup_certificate_issuelog' %}" class="btn btn-warning">
+            <i class="bi bi-download"></i> 증명서 발급현황 백업
+        </a>
+        <a href="{% url 'budget:backup_sqlite_db' %}" class="btn btn-secondary">
+            <i class="bi bi-hdd"></i> 전체 DB 백업
+        </a>
+        <a href="{% url 'budget:backup_db_and_media' %}" class="btn btn-dark">
+            <i class="bi bi-archive"></i> DB+미디어 전체 백업
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function changeYear() {
+    const year = document.getElementById('yearSelect').value;
+    window.location.href = '?year=' + year;
+}
+
+// DOMContentLoaded와 Chart.js 로드 대기
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js가 로드될 때까지 대기
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js가 로드되지 않았습니다.');
+        return;
+    }
+
+    // 월별 추이 그래프
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (!monthlyCtx) {
+        console.error('monthlyChart 캔버스를 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 안전하게 JSON 데이터 파싱
+    const monthlyLabels = JSON.parse(document.getElementById('monthly-labels-data').textContent);
+    const monthlyOfferings = JSON.parse(document.getElementById('monthly-offerings-data').textContent);
+    const monthlyExpenses = JSON.parse(document.getElementById('monthly-expenses-data').textContent);
+    new Chart(monthlyCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: '헌금',
+                data: monthlyOfferings,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.4
+            }, {
+                label: '지출',
+                data: monthlyExpenses,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString() + '원';
+                    }
+                }
+            }
+        }
+    }
+});
+
+    // 헌금 유형별 파이 차트
+    const offeringTypeCtx = document.getElementById('offeringTypeChart');
+    if (!offeringTypeCtx) {
+        console.error('offeringTypeChart 캔버스를 찾을 수 없습니다.');
+        return;
+    }
+    
+    const offeringTypeLabels = JSON.parse(document.getElementById('offering-type-labels-data').textContent);
+    const offeringTypeValues = JSON.parse(document.getElementById('offering-type-values-data').textContent);
+    new Chart(offeringTypeCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: offeringTypeLabels,
+            datasets: [{
+                data: offeringTypeValues,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)'
+                ]
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += context.parsed.toLocaleString() + '원';
+                        return label;
+                    }
+                }
+            }
+        }
+    }
+});
+
+    // 부서별 지출 파이 차트
+    const departmentCtx = document.getElementById('departmentChart');
+    if (!departmentCtx) {
+        console.error('departmentChart 캔버스를 찾을 수 없습니다.');
+        return;
+    }
+    
+    const departmentLabels = JSON.parse(document.getElementById('department-labels-data').textContent);
+    const departmentValues = JSON.parse(document.getElementById('department-values-data').textContent);
+    new Chart(departmentCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: departmentLabels,
+            datasets: [{
+                data: departmentValues,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.parsed.toLocaleString() + '원';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}); // DOMContentLoaded 끝
+// JSON 데이터 삽입
+</script>
+<script id="monthly-labels-data" type="application/json">{{ monthly_labels|safe }}</script>
+<script id="monthly-offerings-data" type="application/json">{{ monthly_offerings|safe }}</script>
+<script id="monthly-expenses-data" type="application/json">{{ monthly_expenses|safe }}</script>
+<script id="offering-type-labels-data" type="application/json">{{ offering_type_labels|safe }}</script>
+<script id="offering-type-values-data" type="application/json">{{ offering_type_values|safe }}</script>
+<script id="department-labels-data" type="application/json">{{ department_labels|safe }}</script>
+<script id="department-values-data" type="application/json">{{ department_values|safe }}</script>
+{% endblock %}

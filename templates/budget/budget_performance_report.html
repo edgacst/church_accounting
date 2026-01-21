@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}예산 대비 실적 보고서 - 교회 재정 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-graph-up"></i> 예산 대비 실적 보고서
+        </h2>
+        
+        <div class="btn-group">
+            {% for y in available_years %}
+            <a href="?year={{ y }}" class="btn {% if y == year|add:0 %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                {{ y }}년
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 전체 요약 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">총 예산</h6>
+                    <h4 class="text-primary">{{ total_budget|intcomma }}원</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">집행액</h6>
+                    <h4 class="text-success">{{ total_spent|intcomma }}원</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">잔액</h6>
+                    <h4 class="text-info">{{ total_balance|intcomma }}원</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">집행률</h6>
+                    <h4 class="{% if total_usage_rate > 90 %}text-danger{% elif total_usage_rate > 70 %}text-warning{% else %}text-success{% endif %}">
+                        {{ total_usage_rate|floatformat:1 }}%
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 부서별 상세 -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-table"></i> 부서별 예산 집행 현황
+        </div>
+        <div class="card-body">
+            {% if budget_stats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>부서</th>
+                            <th class="text-end">예산</th>
+                            <th class="text-end">집행액</th>
+                            <th class="text-end">잔액</th>
+                            <th class="text-center">집행률</th>
+                            <th class="text-center">승인건수</th>
+                            <th class="text-center">대기건수</th>
+                            <th class="text-center">진행상황</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in budget_stats %}
+                        <tr>
+                            <td>
+                                <strong>{{ stat.budget.department_name }}</strong>
+                                {% if not stat.budget.is_approved %}
+                                <span class="badge bg-warning text-dark">미승인</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ stat.budget.total_amount|intcomma }}원</td>
+                            <td class="text-end text-success">{{ stat.spent|intcomma }}원</td>
+                            <td class="text-end text-info">{{ stat.balance|intcomma }}원</td>
+                            <td class="text-center">
+                                <span class="badge {% if stat.usage_rate > 90 %}bg-danger{% elif stat.usage_rate > 70 %}bg-warning{% else %}bg-success{% endif %}">
+                                    {{ stat.usage_rate|floatformat:1 }}%
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success">{{ stat.approved_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% if stat.pending_count > 0 %}
+                                <span class="badge bg-warning">{{ stat.pending_count }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar {% if stat.usage_rate > 90 %}bg-danger{% elif stat.usage_rate > 70 %}bg-warning{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ stat.usage_rate|default_if_none:'0'|floatformat:0 }}%;"
+                                         aria-valuenow="{{ stat.usage_rate|default_if_none:'0'|floatformat:0 }}"
+                                         aria-valuemin="0" aria-valuemax="100">
+                                        {{ stat.usage_rate|floatformat:0 }}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th>합계</th>
+                            <th class="text-end">{{ total_budget|intcomma }}원</th>
+                            <th class="text-end">{{ total_spent|intcomma }}원</th>
+                            <th class="text-end">{{ total_balance|intcomma }}원</th>
+                            <th class="text-center">{{ total_usage_rate|floatformat:1 }}%</th>
+                            <th colspan="3"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> {{ year }}년 예산 데이터가 없습니다.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 집행률 안내 -->
+    <div class="alert alert-secondary mt-4">
+        <h6><i class="bi bi-lightbulb"></i> 집행률 안내</h6>
+        <ul class="mb-0">
+            <li><span class="badge bg-success">70% 이하</span> - 정상 집행 중</li>
+            <li><span class="badge bg-warning">70~90%</span> - 주의 필요 (예산 소진 임박)</li>
+            <li><span class="badge bg-danger">90% 이상</span> - 예산 초과 위험</li>
+        </ul>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="text-center mt-4 mb-4">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary need-auth">
+            <i class="bi bi-house-door"></i> 대시보드로
+        </a>
+        <a href="{% url 'budget:approval_dashboard' %}" class="btn btn-primary need-auth">
+            <i class="bi bi-check-circle"></i> 결재 대시보드
+        </a>
+        <a href="{% url 'budget:export_budget_excel' %}?year={{ year }}" class="btn btn-success need-auth">
+            <i class="bi bi-file-earmark-excel"></i> Excel 다운로드
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary need-auth">
+            <i class="bi bi-printer"></i> 인쇄하기
+        </button>
+        <!-- 증명서 발급 버튼은 누구나 접근 가능 -->
+        <a href="{% url 'offerings:tax_certificate_list' %}" class="btn btn-warning">
+            <i class="bi bi-file-earmark-text"></i> 증명서 발급
+        </a>
+    </div>
+</div>
+
+{% if not user.is_staff %}
+<script>
+    document.querySelectorAll('.need-auth').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('권한이 없습니다. 관리자에게 문의하세요.');
+        });
+    });
+</script>
+{% endif %}
+<style>
+    @media print {
+        .btn, .btn-group, nav, footer {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

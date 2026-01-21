@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>연말 헌금 증명서 발급</title>
+    <style>
+        body { font-family: 'Malgun Gothic', Arial; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 5px; }
+        .member-card { 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn { 
+            padding: 8px 16px; 
+            background: #3498db; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 4px; 
+        }
+        .btn:hover { background: #2980b9; }
+        .amount { color: #2ecc71; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 연말 헌금 증명서 발급</h1>
+            <p>{{ current_year }}년도 헌금 증명서</p>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            {% for data in members %}
+            <div class="member-card">
+                <div>
+                    <h3>{{ data.member.korean_name }} ({{ data.member.member_id }})</h3>
+                    <p>헌금 건수: {{ data.offering_count }}건</p>
+                </div>
+                <div style="text-align: right;">
+                    <div class="amount">{{ data.total_amount|floatformat:0 }}원</div>
+                    <a href="/offerings/certificate/{{ data.member.id }}/" class="btn" target="_blank">
+                        증명서 다운로드
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p>증명서 발급 대상 교인이 없습니다.</p>
+            <p>관리자 페이지에서 교인의 "세금공제동의"를 체크해 주세요.</p>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/" class="btn">← 대시보드로 돌아가기</a>
+            <a href="/admin/members/churchmember/" class="btn" style="margin-left: 10px;">교인 관리</a>
+        </div>
+    </div>
+</body>
+</html>
