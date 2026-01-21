@@ -5,6 +5,12 @@ import sys
 
 if 'runserver' in sys.argv or 'gunicorn' in sys.argv:
     try:
+        import os
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        db_path = BASE_DIR / 'db.sqlite3'
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print('db.sqlite3 파일 삭제 완료 (최초 1회만 사용, 배포 후 반드시 삭제!)')
         django.setup()
         from django.contrib.auth.models import Group
         User = get_user_model()
